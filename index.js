@@ -10,6 +10,7 @@ const {
 } = require('uuid');
 
 
+const HOST = '0.0.0.0';
 const PORT = 8001;
 
 // Static files
@@ -57,6 +58,8 @@ io.on('connection', (socket) => {
 
     const player = {
         id: socket.id,
+        name: '1',
+        connected: true,
         ready: false,
     };
 
@@ -68,16 +71,36 @@ io.on('connection', (socket) => {
 
 
     function emitGameState() {
-        console.log('emitGameState()');
+        // console.log('emitGameState()');
         if (!game) return;
-        console.log('game.state:', game);
+        // console.log('game.state:', game);
         io.sockets.in(game.id).emit('gameState', game);
+    }
+
+    // do game logic
+    function gamePlay() {
+        // check if players disconnected
+        // TODO: add ability to reconnect, timeout
+        if (!game.players.find((player) => player.connected)) {
+
+            console.log('gamePlay() all players disconnected, removing game ', game.id);
+            console.log(game);
+
+            games.delete(game.id);
+
+            // TODO: check for memory leaks
+
+            // Clear game from memory
+            game.players = [];
+            game = undefined;
+        }
     }
 
     async function initEmitGameStateLoop() {
         while (game) {
             await new Promise(resolve => setTimeout(resolve, game.playing ? 2000 : 2000));
             emitGameState();
+            gamePlay();
         }
     }
 
@@ -100,21 +123,35 @@ io.on('connection', (socket) => {
         emitGameState();
 
         initEmitGameStateLoop();
+
+        io.emit('gameCreated', game.id);
+
+        console.log(game);
     });
 
 
     socket.on('joinGame', (gameId) => {
         console.log('joinGame', gameId);
 
+        if (gameId == '') {
+            gameId = games.values().next().value?.id;
+            // console.log('joining without id', games.values().next().value);
+            // console.log('joining without id', gameId);
+        }
+
         if (!games.has(gameId)) return;
 
         game = games.get(gameId);
+
+        player.name = `${game.players.length + 1}`;
 
         game.players.push(player);
 
         socket.join(game.id);
 
         emitGameState();
+
+        console.log(game);
     });
 
     socket.on('ready', () => {
@@ -126,11 +163,12 @@ io.on('connection', (socket) => {
             console.log('All Ready!')
             game.playing = true;
         }
+
         emitGameState();
     });
 
     socket.on('playingGameState', (playingGameState) => {
-        console.log('playingGameState', playingGameState);
+        // console.log('playingGameState', playingGameState);
 
         game.playingState = playingGameState;
     });
@@ -143,13 +181,14 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('player disconnected ', player.id);
         players.delete(player.id);
+        player.connected = false;
         emitGameState();
     });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
     console.log(`Listening on port ${PORT}`);
-    console.log(`http://localhost:${PORT}`);
+    console.log(`http://${HOST}:${PORT}`);
 });
 
 

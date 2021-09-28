@@ -26,15 +26,42 @@
 <body>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    var socket = io();
+    var socket;
 
-    socket.on('gameState', (gameState) => {
-        console.log('gameState', JSON.stringify(gameState, null, 2));
-    })
 
-    socket.on('attachPathToPendingUnit', (path) => {
-        console.log('attachPathToPendingUnit', JSON.stringify(path, null, 2));
-    })
+    function connect() {
+        socket = io();
+
+        socket.on('gameState', (gameState) => {
+            console.log('gameState', JSON.stringify(gameState, null, 2));
+        })
+
+        socket.on('attachPathToPendingUnit', (path) => {
+            console.log('attachPathToPendingUnit', JSON.stringify(path, null, 2));
+        })
+
+        socket.on('gameCreated', (gameId) => {
+
+            // return;
+
+            socket.disconnect();
+
+            connect();
+
+
+            setTimeout(() => {
+
+                socket.emit('joinGame', gameId);
+
+                setTimeout(() => {
+                    socket.emit('ready');
+                }, 1000);
+            }, 1000);
+        });
+    }
+
+    connect();
+
 
     function createGame() {
         socket.emit('createGame');
