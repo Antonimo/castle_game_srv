@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        body {
+            margin: 0;
+            padding-bottom: 3rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .main {
+            padding: 40px;
+            display: flex;
+            flex-flow: column;
+            align-items: center;
+        }
+        .containeer {
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+    </style>
+</head>
+<body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+
+    socket.on('gameState', (gameState) => {
+        console.log('gameState', JSON.stringify(gameState, null, 2));
+    })
+
+    socket.on('attachPathToPendingUnit', (path) => {
+        console.log('attachPathToPendingUnit', JSON.stringify(path, null, 2));
+    })
+
+    function createGame() {
+        socket.emit('createGame');
+    }
+
+    function joinGame() {
+        var input = document.getElementById('gameId');
+        console.log('input:', input.value);
+
+        socket.emit('joinGame', input.value);
+    }
+
+    function ready() {
+        socket.emit('ready');
+    }
+
+    function emitGameState() {
+        socket.emit('playingGameState', {
+            drawPathForPlayer: false,
+            // players: [],
+            bases: [],
+            units: []
+        });
+    }
+
+    function attachPathToPendingUnit() {
+        socket.emit('attachPathToPendingUnit', {
+            path: [
+                {x: 1, y:2},
+                {x: 2, y:3}
+            ]
+        });
+    }
+
+
+</script>
+
+<div class="main">
+    <div class="containeer">
+        <button type="button" onclick="createGame()">createGame</button>
+    </div>
+    <div class="containeer">
+        <input type="text" id="gameId">
+        <button type="button" onclick="joinGame()">join</button>
+    </div>
+    <div class="containeer">
+        <button type="button" onclick="ready()">Ready</button>
+    </div>
+    <div class="containeer">
+        <button type="button" onclick="emitGameState()">EmitGameState</button>
+    </div>
+    <div class="containeer">
+        <button type="button" onclick="attachPathToPendingUnit()">attachPathToPendingUnit</button>
+    </div>
+
+</div>
+
+</body>
+</html>
