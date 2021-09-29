@@ -36,13 +36,17 @@
             console.log('gameState', JSON.stringify(gameState, null, 2));
         })
 
+        socket.on('getStatus', (getStatus) => {
+            console.log('getStatus', getStatus);
+        })
+
         socket.on('attachPathToPendingUnit', (path) => {
             console.log('attachPathToPendingUnit', JSON.stringify(path, null, 2));
         })
 
         socket.on('gameCreated', (gameId) => {
 
-            // return;
+            return;
 
             socket.disconnect();
 
@@ -96,6 +100,10 @@
         });
     }
 
+    function getStatus() {
+        socket.emit('getStatus');
+    }
+
 
 </script>
 
@@ -115,6 +123,9 @@
     </div>
     <div class="containeer">
         <button type="button" onclick="attachPathToPendingUnit()">attachPathToPendingUnit</button>
+    </div>
+    <div class="containeer">
+        <button type="button" onclick="getStatus()">get status</button>
     </div>
 
 </div>

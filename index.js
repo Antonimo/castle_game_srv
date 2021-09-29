@@ -73,8 +73,18 @@ io.on('connection', (socket) => {
     function emitGameState() {
         // console.log('emitGameState()');
         if (!game) return;
-        // console.log('game.state:', game);
-        io.sockets.in(game.id).emit('gameState', game);
+
+
+        console.log(Date.now(), 'emitGameState:', game.id);
+
+        // console.log('io.sockets.in(game.id):', io.sockets.in(game.id));
+
+        // io.in(game.id).allSockets().then(result => {
+        //     console.log(`io.sockets.in(${game.id}):`, result.size);
+        // })
+
+        // io.sockets.in(game.id).emit('gameState', game);
+        io.in(game.id).emit('gameState', game);
     }
 
     // do game logic
@@ -98,7 +108,10 @@ io.on('connection', (socket) => {
 
     async function initEmitGameStateLoop() {
         while (game) {
-            await new Promise(resolve => setTimeout(resolve, game.playing ? 2000 : 2000));
+            await new Promise((resolve) => {
+                return setTimeout(resolve, game.playing ? 600 : 1000);
+                // return setTimeout(resolve, game.playing ? 2000 : 2000);
+            });
             emitGameState();
             gamePlay();
         }
@@ -133,11 +146,11 @@ io.on('connection', (socket) => {
     socket.on('joinGame', (gameId) => {
         console.log('joinGame', gameId);
 
-        if (gameId == '') {
-            gameId = games.values().next().value?.id;
-            // console.log('joining without id', games.values().next().value);
-            // console.log('joining without id', gameId);
-        }
+        // if (gameId == '') {
+        //     gameId = games.values().next().value?.id;
+        //     // console.log('joining without id', games.values().next().value);
+        //     // console.log('joining without id', gameId);
+        // }
 
         if (!games.has(gameId)) return;
 
@@ -155,9 +168,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('ready', () => {
-        console.log('ready', player.id, game.id);
+        console.log('ready', player.id, game?.id);
 
         player.ready = !player.ready;
+
+        if (!game) return;
 
         if (!game.players.find((player) => !player.ready)) {
             console.log('All Ready!')
@@ -178,6 +193,19 @@ io.on('connection', (socket) => {
         io.to(game.hostedBy).emit('attachPathToPendingUnit', path);
     });
 
+    socket.on('getStatus', () => {
+        let getStatus = {
+            games,
+            players
+        };
+
+        console.log('getStatus', JSON.stringify(getStatus, replacer, 2));
+
+        console.log('io.sockets', io.sockets.sockets);
+
+        io.emit('getStatus', JSON.stringify(getStatus, replacer, 2));
+    });
+
     socket.on('disconnect', () => {
         console.log('player disconnected ', player.id);
         players.delete(player.id);
@@ -192,8 +220,22 @@ server.listen(PORT, HOST, () => {
 });
 
 
+function replacer(key, value) {
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
+    } else {
+        return value;
+    }
+}
 
-
-
-
-
+function reviver(key, value) {
+    if (typeof value === 'object' && value !== null) {
+        if (value.dataType === 'Map') {
+            return new Map(value.value);
+        }
+    }
+    return value;
+}
