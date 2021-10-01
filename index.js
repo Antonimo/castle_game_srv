@@ -74,7 +74,6 @@ io.on('connection', (socket) => {
         // console.log('emitGameState()');
         if (!game) return;
 
-
         console.log(Date.now(), 'emitGameState:', game.id);
 
         // console.log('io.sockets.in(game.id):', io.sockets.in(game.id));
@@ -106,11 +105,11 @@ io.on('connection', (socket) => {
         }
     }
 
+    // Mainly to keep things up to date in case there was a glitch or something.
     async function initEmitGameStateLoop() {
         while (game) {
             await new Promise((resolve) => {
-                return setTimeout(resolve, game.playing ? 600 : 1000);
-                // return setTimeout(resolve, game.playing ? 2000 : 2000);
+                return setTimeout(resolve, 5000);
             });
             emitGameState();
             gamePlay();
@@ -186,13 +185,25 @@ io.on('connection', (socket) => {
         // console.log('playingGameState', playingGameState);
 
         game.playingState = playingGameState;
+        emitGameState();
     });
 
+    // From player2 to player1 (the host)
     socket.on('attachPathToPendingUnit', (path) => {
         console.log('attachPathToPendingUnit', path);
         io.to(game.hostedBy).emit('attachPathToPendingUnit', path);
     });
 
+
+    socket.on('gameOver', () => {
+        console.log('gameOver');
+
+        game.playing = false;
+        game.players.forEach((player) => player.ready = false);
+    });
+
+
+    // for debugging
     socket.on('getStatus', () => {
         let getStatus = {
             games,
