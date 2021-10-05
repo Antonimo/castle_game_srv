@@ -194,6 +194,11 @@ io.on('connection', (socket) => {
         io.to(game.hostedBy).emit('attachPathToPendingUnit', path);
     });
 
+    // From player2 to player1 (the host)
+    socket.on('gameAction', (action) => {
+        console.log('gameAction', action);
+        io.to(game.hostedBy).emit('gameAction', action);
+    });
 
     socket.on('gameOver', () => {
         console.log('gameOver');
