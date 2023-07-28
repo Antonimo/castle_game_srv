@@ -13,6 +13,7 @@ const {
 const HOST = '0.0.0.0';
 const PORT = 8001;
 
+
 // Static files
 // app.use(express.static("public"));
 app.get('/', (req, res) => {
@@ -22,38 +23,40 @@ app.get('/', (req, res) => {
 
 const players = new Map();
 const games = new Map();
+const invites = new Map();
 
 
-var UNIQUE_RETRIES = 9999;
+const UNIQUE_RETRIES = 9999;
+const generateUnique = function (map) {
+    let retries = 0;
+    let id;
 
-var generateUnique = function () {
-    var retries = 0;
-    var id;
-
-    while (!id && retries < UNIQUE_RETRIES) {
+    while (!id) {
         id = generate();
-        if (games.has(id)) {
+        if (map.has(id)) {
             id = null;
             retries++;
+        }
+        if (retries > UNIQUE_RETRIES) {
+            throw new Error('generateUnique: too many retries')
         }
     }
 
     return id;
 };
-
-// var ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-var ALPHABET = '0123456789';
-
-var ID_LENGTH = 4;
-
-var generate = function () {
-    var rtn = '';
-    for (var i = 0; i < ID_LENGTH; i++) {
+// const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const ALPHABET = '0123456789';
+const ID_LENGTH = 4;
+const generate = function () {
+    let rtn = '';
+    for (let i = 0; i < ID_LENGTH; i++) {
         rtn += ALPHABET.charAt(Math.floor(Math.random() * ALPHABET.length));
     }
     return rtn;
 }
 
+
+// TODO: throttle everything, kick and ban abusive ip
 io.on('connection', (socket) => {
 
     const player = {
@@ -69,6 +72,32 @@ io.on('connection', (socket) => {
 
     players.set(socket.id, player);
 
+    function joinGame(gameId) {
+        // if (gameId == '') {
+        //     gameId = games.values().next().value?.id;
+        //     // console.log('joining without id', games.values().next().value);
+        //     // console.log('joining without id', gameId);
+        // }
+
+        // TODO: throw error?
+        if (!games.has(gameId)) return;
+
+        game = games.get(gameId);
+
+        player.name = `${game.players.length + 1}`;
+
+        // TODO: check player is not already in game
+        // TODO: check there is free place for player
+        if (game.players.length >= 2) return;
+
+        game.players.push(player);
+
+        socket.join(game.id);
+
+        emitGameState();
+
+        console.log(game);
+    }
 
     function emitGameState() {
         // console.log('emitGameState()');
@@ -120,7 +149,7 @@ io.on('connection', (socket) => {
         console.log('createGame');
 
         game = {
-            id: generateUnique(),
+            id: generateUnique(games),
             hostedBy: player.id,
             players: [
                 player
@@ -134,36 +163,39 @@ io.on('connection', (socket) => {
 
         emitGameState();
 
-        initEmitGameStateLoop();
+        void initEmitGameStateLoop();
 
         io.emit('gameCreated', game.id);
 
         console.log(game);
     });
 
+    socket.on('invite', (callback) => {
+        console.log('invite', game.id);
+        console.log('typeof callback', typeof callback);
+        callback = typeof callback == "function" ? callback : () => {};
+        const inviteToken = generateUnique(invites);
+        invites.set(inviteToken, game.id);
+        // TODO: generate url for phones
+        // if game is installed - open game
+        // if not installed - go to android play store or apple store
+        callback( inviteToken );
+    })
+
+    socket.on('acceptInvite', (inviteToken) => {
+        console.log('acceptInvite', inviteToken);
+        const gameId = invites.get(inviteToken);
+
+        // TODO: throw errors
+        if (!gameId) return;
+
+        joinGame(gameId)
+    })
 
     socket.on('joinGame', (gameId) => {
         console.log('joinGame', gameId);
 
-        // if (gameId == '') {
-        //     gameId = games.values().next().value?.id;
-        //     // console.log('joining without id', games.values().next().value);
-        //     // console.log('joining without id', gameId);
-        // }
-
-        if (!games.has(gameId)) return;
-
-        game = games.get(gameId);
-
-        player.name = `${game.players.length + 1}`;
-
-        game.players.push(player);
-
-        socket.join(game.id);
-
-        emitGameState();
-
-        console.log(game);
+        joinGame(gameId)
     });
 
     socket.on('ready', () => {
@@ -207,6 +239,13 @@ io.on('connection', (socket) => {
         game.players.forEach((player) => player.ready = false);
     });
 
+    socket.on('disconnect', () => {
+        console.log('player disconnected ', player.id);
+        players.delete(player.id);
+        player.connected = false;
+        emitGameState();
+    });
+
 
     // for debugging
     socket.on('getStatus', () => {
@@ -220,13 +259,6 @@ io.on('connection', (socket) => {
         console.log('io.sockets', io.sockets.sockets);
 
         io.emit('getStatus', JSON.stringify(getStatus, replacer, 2));
-    });
-
-    socket.on('disconnect', () => {
-        console.log('player disconnected ', player.id);
-        players.delete(player.id);
-        player.connected = false;
-        emitGameState();
     });
 });
 

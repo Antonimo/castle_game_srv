@@ -71,6 +71,19 @@
         socket.emit('createGame');
     }
 
+    function createInvite() {
+        socket.emit('invite', (response) => {
+            console.log('createInvite response', response)
+        });
+    }
+
+    function acceptInvite() {
+        var inviteToken = document.getElementById('inviteToken');
+        console.log('inviteToken:', inviteToken.value);
+
+        socket.emit('acceptInvite', inviteToken.value);
+    }
+
     function joinGame() {
         var input = document.getElementById('gameId');
         console.log('input:', input.value);
@@ -110,6 +123,13 @@
 <div class="main">
     <div class="containeer">
         <button type="button" onclick="createGame()">createGame</button>
+    </div>
+    <div class="containeer">
+        <button type="button" onclick="createInvite()">createInvite</button>
+    </div>
+    <div class="containeer">
+        <input type="text" id="inviteToken">
+        <button type="button" onclick="acceptInvite()">acceptInvite</button>
     </div>
     <div class="containeer">
         <input type="text" id="gameId">
