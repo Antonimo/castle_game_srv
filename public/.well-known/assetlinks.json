@@ -1,0 +1,14 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.castle_game",
+      "sha256_cert_fingerprints": [
+        "06:40:B7:72:9B:25:E8:51:57:E0:EA:72:BA:C1:F7:41:38:80:F1:09:9C:8D:32:0E:81:D8:73:2E:58:ED:96:E4",
+        "82:17:F2:B2:CB:E6:DB:EC:57:AF:AE:AE:50:4A:5A:1C:78:D0:39:E2:6C:F6:FA:2C:7A:BA:7C:02:AA:08:B5:28",
+        "0C:C1:53:B8:80:48:EF:68:EA:FF:AE:1F:18:A7:4C:D1:D8:27:9A:25:BB:E3:13:DC:6F:17:7F:73:F6:FB:A7:16"
+      ]
+    }
+  }
+]

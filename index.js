@@ -175,6 +175,7 @@ io.on('connection', (socket) => {
         console.log('typeof callback', typeof callback);
         callback = typeof callback == "function" ? callback : () => {};
         const inviteToken = generateUnique(invites);
+        // TODO: clear invites after some time
         invites.set(inviteToken, game.id);
         // TODO: generate url for phones
         // if game is installed - open game
